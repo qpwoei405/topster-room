@@ -71,15 +71,15 @@ export default function Home() {
         const sy = (img.height - size) / 2;
 
         const canvas = document.createElement("canvas");
-        canvas.width = 500;
-        canvas.height = 500;
+        canvas.width = 1600;
+        canvas.height = 1600;
 
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
         ctx.drawImage(img, sx, sy, size, size, 0, 0, 500, 500);
 
-        const croppedImage = canvas.toDataURL("image/jpeg", 0.95);
+        const croppedImage = canvas.toDataURL("image/png");
 
         const newSections = [...sections];
         newSections[sectionIndex].images[imageIndex] = croppedImage;
@@ -162,8 +162,8 @@ export default function Home() {
   if (!ctx) return;
 
   // 3:4 비율 고해상도
-  const WIDTH = 1800;
-  const HEIGHT = 2400;
+  const WIDTH = 2400;
+  const HEIGHT = 3200;
 
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
