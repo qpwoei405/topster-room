@@ -124,22 +124,36 @@ export default function Home() {
     setAnalysis(data.analysis);
   };
 
-  const handleDownload = async () => {
-    const image = await handleCapture();
-    if (!image) return;
+  const handleCapture = async () => {
+    const element = captureRef.current;
+    if (!element) return;
 
-    const link = document.createElement("a");
-    link.href = image;
-    link.download = "my-topster-room-3x4.png";
-    link.click();
-  };
+    // 🔥 원래 스타일 저장
+    const prev = {
+      width: element.style.width,
+      maxWidth: element.style.maxWidth,
+    };
 
-  const getTasteDescription = (text: string) => {
-    const match = text.match(/TASTE DESCRIPTION:\s*([\s\S]*?)(?:ROOM PROMPT:|$)/);
-    if (!match) return "";
-    return match[1]
-      .replace(/^- /gm, "")
-      .trim();
+    // 🔥 캡처용으로 크게 (핵심)
+    element.style.width = "1400px";
+    element.style.maxWidth = "1400px";
+
+    await new Promise((r) => setTimeout(r, 200));
+
+    const canvas = await html2canvas(element, {
+      backgroundColor: roomImage ? null : "#000",
+      useCORS: true,
+      scale: 2, // 여기 2~3 추천
+    });
+
+    // 🔥 원상복구
+    element.style.width = prev.width;
+    element.style.maxWidth = prev.maxWidth;
+
+    // 🔥 고품질 PNG
+    const image = canvas.toDataURL("image/png", 1.0);
+    setTopsterImage(image);
+    return image;
   };
 
   const tasteDescription = getTasteDescription(analysis);
