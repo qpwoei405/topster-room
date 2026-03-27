@@ -160,147 +160,157 @@ export default function Home() {
   };
 
   const handleDownload = async () => {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-  // 3:4 비율 고해상도
-  const WIDTH = 1200;
-  const HEIGHT = 1600;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
 
-  canvas.width = WIDTH;
-  canvas.height = HEIGHT;
+    // 기본 3:4
+    let WIDTH = 1536;
+    let HEIGHT = 2048;
 
-  // 배경
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    let bg: HTMLImageElement | null = null;
 
-  // room image 그리기
-  if (roomImage) {
-    const bg = new Image();
-    bg.crossOrigin = "anonymous";
-    bg.src = roomImage;
+    // 룸이미지 먼저 로드
+    if (roomImage) {
+      bg = new Image();
+      bg.crossOrigin = "anonymous";
+      bg.src = roomImage;
 
-    await new Promise<void>((resolve, reject) => {
-      bg.onload = () => {
-        // cover 방식으로 배경 채우기
-        const imgRatio = bg.width / bg.height;
-        const canvasRatio = WIDTH / HEIGHT;
+      await new Promise<void>((resolve, reject) => {
+        bg!.onload = () => resolve();
+        bg!.onerror = reject;
+      });
 
-        let sx = 0;
-        let sy = 0;
-        let sWidth = bg.width;
-        let sHeight = bg.height;
+      // 배경 원본 기준으로 3:4 맞추기
+      const portraitWidthFromBg = Math.round((bg.height * 3) / 4);
+      const portraitHeightFromBg = Math.round((bg.width * 4) / 3);
 
-        if (imgRatio > canvasRatio) {
-          // 좌우 잘라냄
-          sWidth = bg.height * canvasRatio;
-          sx = (bg.width - sWidth) / 2;
-        } else {
-          // 위아래 잘라냄
-          sHeight = bg.width / canvasRatio;
-          sy = (bg.height - sHeight) / 2;
-        }
-
-        ctx.drawImage(
-          bg,
-          sx,
-          sy,
-          sWidth,
-          sHeight,
-          0,
-          0,
-          WIDTH,
-          HEIGHT
-        );
-
-        // 어두운 오버레이
-        ctx.fillStyle = "rgba(0,0,0,0.26)";
-        ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-        resolve();
-      };
-      bg.onerror = reject;
-    });
-  }
-
-  // 패딩/레이아웃
-  const padding = 48;
-  const gap = 16;
-  const titleGap = 14;
-  const sectionGap = 28;
-
-  let y = padding;
-  const gridWidth = WIDTH - padding * 2;
-  const cellSize = (gridWidth - gap * 3) / 4;
-
-  ctx.textBaseline = "top";
-
-  for (const section of sections) {
-    if (!section.title.trim() || !section.rows) continue;
-
-    // 제목
-    ctx.fillStyle = "red";
-    ctx.font = "bold 40px Arial";
-    ctx.fillText(section.title, padding, y);
-    y += 48 + titleGap;
-
-    // 포스터들
-    const total = section.rows * 4;
-
-    for (let i = 0; i < total; i++) {
-      const row = Math.floor(i / 4);
-      const col = i % 4;
-
-      const x = padding + col * (cellSize + gap);
-      const boxY = y + row * (cellSize + gap);
-
-      // 흰 박스
-      ctx.fillStyle = "white";
-      ctx.fillRect(x, boxY, cellSize, cellSize);
-
-      const src = section.images[i];
-      if (src) {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = src;
-
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => {
-            // 정사각형 cover 크롭
-            const size = Math.min(img.width, img.height);
-            const sx = (img.width - size) / 2;
-            const sy = (img.height - size) / 2;
-
-            ctx.drawImage(
-              img,
-              sx,
-              sy,
-              size,
-              size,
-              x,
-              boxY,
-              cellSize,
-              cellSize
-            );
-
-            resolve();
-          };
-          img.onerror = reject;
-        });
+      if (bg.width / bg.height > 3 / 4) {
+        // 배경이 더 넓으면 높이 기준
+        HEIGHT = bg.height;
+        WIDTH = portraitWidthFromBg;
+      } else {
+        // 배경이 더 세로면 너비 기준
+        WIDTH = bg.width;
+        HEIGHT = portraitHeightFromBg;
       }
     }
 
-    y += section.rows * cellSize + (section.rows - 1) * gap + sectionGap;
-  }
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
 
-  const image = canvas.toDataURL("image/png");
-  setTopsterImage(image);
+    // 검정 배경
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  const link = document.createElement("a");
-  link.href = image;
-  link.download = "my-topster-room-3x4.png";
-  link.click();
+    // 룸이미지 cover 크롭
+    if (bg) {
+      const imgRatio = bg.width / bg.height;
+      const canvasRatio = WIDTH / HEIGHT;
+
+      let sx = 0;
+      let sy = 0;
+      let sWidth = bg.width;
+      let sHeight = bg.height;
+
+      if (imgRatio > canvasRatio) {
+        sWidth = bg.height * canvasRatio;
+        sx = (bg.width - sWidth) / 2;
+      } else {
+        sHeight = bg.width / canvasRatio;
+        sy = (bg.height - sHeight) / 2;
+      }
+
+      ctx.drawImage(
+        bg,
+        sx,
+        sy,
+        sWidth,
+        sHeight,
+        0,
+        0,
+        WIDTH,
+        HEIGHT
+      );
+
+      ctx.fillStyle = "rgba(0,0,0,0.26)";
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    }
+
+    const padding = Math.round(WIDTH * 0.04);
+    const gap = Math.round(WIDTH * 0.013);
+    const titleGap = Math.round(WIDTH * 0.012);
+    const sectionGap = Math.round(WIDTH * 0.022);
+
+    let y = padding;
+    const gridWidth = WIDTH - padding * 2;
+    const cellSize = (gridWidth - gap * 3) / 4;
+
+    ctx.textBaseline = "top";
+
+    for (const section of sections) {
+      if (!section.title.trim() || !section.rows) continue;
+
+      ctx.fillStyle = "red";
+      ctx.font = `bold ${Math.round(WIDTH * 0.05)}px Arial`;
+      ctx.fillText(section.title, padding, y);
+      y += Math.round(WIDTH * 0.06) + titleGap;
+
+      const total = section.rows * 4;
+
+      for (let i = 0; i < total; i++) {
+        const row = Math.floor(i / 4);
+        const col = i % 4;
+
+        const x = padding + col * (cellSize + gap);
+        const boxY = y + row * (cellSize + gap);
+
+        ctx.fillStyle = "white";
+        ctx.fillRect(x, boxY, cellSize, cellSize);
+
+        const src = section.images[i];
+        if (src) {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = src;
+
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => {
+              const size = Math.min(img.width, img.height);
+              const sx = (img.width - size) / 2;
+              const sy = (img.height - size) / 2;
+
+              ctx.drawImage(
+                img,
+                sx,
+                sy,
+                size,
+                size,
+                x,
+                boxY,
+                cellSize,
+                cellSize
+              );
+              resolve();
+            };
+            img.onerror = reject;
+          });
+        }
+      }
+
+      y += section.rows * cellSize + (section.rows - 1) * gap + sectionGap;
+    }
+
+    const image = canvas.toDataURL("image/png");
+    setTopsterImage(image);
+
+    const link = document.createElement("a");
+    link.href = image;
+    link.download = "my-topster-room-3x4.png";
+    link.click();
   };
 
   const tasteDescription = getTasteDescription(analysis);
