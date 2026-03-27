@@ -162,8 +162,8 @@ export default function Home() {
   if (!ctx) return;
 
   // 3:4 비율 고해상도
-  const WIDTH = 1200;
-  const HEIGHT = 1600;
+  const WIDTH = 1800;
+  const HEIGHT = 2400;
 
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
