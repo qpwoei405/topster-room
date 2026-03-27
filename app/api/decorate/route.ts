@@ -213,6 +213,7 @@ Make it feel like a real person's room that reflects their taste.
     });
 
     const base64 = imageGen.data[0].b64_json;
+    if (!base64) throw new Error("Image generation failed");
     const imageUrl = `data:image/png;base64,${base64}`;
 
     return Response.json({
