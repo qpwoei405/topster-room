@@ -93,15 +93,20 @@ export default function Home() {
   };
 
   const handleCapture = async () => {
+    const element = captureRef.current;
     if (!captureRef.current) return;
 
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    element.style.width = "1200px";
 
-    const canvas = await html2canvas(captureRef.current, {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    const canvas = await html2canvas(element, {
       backgroundColor: roomImage ? null : "#000",
       useCORS: true,
       scale: 3,
     });
+
+    element.style.width = "1200px";
 
     const image = canvas.toDataURL("image/png");
     setTopsterImage(image);
@@ -184,7 +189,7 @@ export default function Home() {
       </div>
 
       <div
-        ref={captureRef}
+        ref={captureRef} id="capture_area"
         style={{
           width: "100%",
           maxWidth: "520px",
