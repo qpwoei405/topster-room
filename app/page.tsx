@@ -156,6 +156,140 @@ export default function Home() {
     return image;
   };
 
+  const handleDownload = async () => {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  // 3:4 비율 고해상도
+  const WIDTH = 1200;
+  const HEIGHT = 1600;
+
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
+
+  // 배경
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  // room image 그리기
+  if (roomImage) {
+    const bg = new Image();
+    bg.crossOrigin = "anonymous";
+    bg.src = roomImage;
+
+    await new Promise<void>((resolve, reject) => {
+      bg.onload = () => {
+        // cover 방식으로 배경 채우기
+        const imgRatio = bg.width / bg.height;
+        const canvasRatio = WIDTH / HEIGHT;
+
+        let drawWidth = WIDTH;
+        let drawHeight = HEIGHT;
+        let dx = 0;
+        let dy = 0;
+
+        if (imgRatio > canvasRatio) {
+          drawHeight = HEIGHT;
+          drawWidth = bg.width * (HEIGHT / bg.height);
+          dx = (WIDTH - drawWidth) / 2;
+        } else {
+          drawWidth = WIDTH;
+          drawHeight = bg.height * (WIDTH / bg.width);
+          dy = (HEIGHT - drawHeight) / 2;
+        }
+
+        ctx.drawImage(bg, dx, dy, drawWidth, drawHeight);
+
+        // 어두운 오버레이
+        ctx.fillStyle = "rgba(0,0,0,0.26)";
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+        resolve();
+      };
+      bg.onerror = reject;
+    });
+  }
+
+  // 패딩/레이아웃
+  const padding = 48;
+  const gap = 16;
+  const titleGap = 14;
+  const sectionGap = 28;
+
+  let y = padding;
+  const gridWidth = WIDTH - padding * 2;
+  const cellSize = (gridWidth - gap * 3) / 4;
+
+  ctx.textBaseline = "top";
+
+  for (const section of sections) {
+    if (!section.title.trim() || !section.rows) continue;
+
+    // 제목
+    ctx.fillStyle = "red";
+    ctx.font = "bold 40px Arial";
+    ctx.fillText(section.title, padding, y);
+    y += 48 + titleGap;
+
+    // 포스터들
+    const total = section.rows * 4;
+
+    for (let i = 0; i < total; i++) {
+      const row = Math.floor(i / 4);
+      const col = i % 4;
+
+      const x = padding + col * (cellSize + gap);
+      const boxY = y + row * (cellSize + gap);
+
+      // 흰 박스
+      ctx.fillStyle = "white";
+      ctx.fillRect(x, boxY, cellSize, cellSize);
+
+      const src = section.images[i];
+      if (src) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = src;
+
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => {
+            // 정사각형 cover 크롭
+            const size = Math.min(img.width, img.height);
+            const sx = (img.width - size) / 2;
+            const sy = (img.height - size) / 2;
+
+            ctx.drawImage(
+              img,
+              sx,
+              sy,
+              size,
+              size,
+              x,
+              boxY,
+              cellSize,
+              cellSize
+            );
+
+            resolve();
+          };
+          img.onerror = reject;
+        });
+      }
+    }
+
+    y += section.rows * cellSize + (section.rows - 1) * gap + sectionGap;
+  }
+
+  const image = canvas.toDataURL("image/png");
+  setTopsterImage(image);
+
+  const link = document.createElement("a");
+  link.href = image;
+  link.download = "my-topster-room-3x4.png";
+  link.click();
+  };
+
   const tasteDescription = getTasteDescription(analysis);
 
   if (screen === "home") {
