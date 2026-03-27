@@ -187,22 +187,32 @@ export default function Home() {
         const imgRatio = bg.width / bg.height;
         const canvasRatio = WIDTH / HEIGHT;
 
-        let drawWidth = WIDTH;
-        let drawHeight = HEIGHT;
-        let dx = 0;
-        let dy = 0;
+        let sx = 0;
+        let sy = 0;
+        let sWidth = bg.width;
+        let sHeight = bg.height;
 
         if (imgRatio > canvasRatio) {
-          drawHeight = HEIGHT;
-          drawWidth = bg.width * (HEIGHT / bg.height);
-          dx = (WIDTH - drawWidth) / 2;
+          // 좌우 잘라냄
+          sWidth = bg.height * canvasRatio;
+          sx = (bg.width - sWidth) / 2;
         } else {
-          drawWidth = WIDTH;
-          drawHeight = bg.height * (WIDTH / bg.width);
-          dy = (HEIGHT - drawHeight) / 2;
+          // 위아래 잘라냄
+          sHeight = bg.width / canvasRatio;
+          sy = (bg.height - sHeight) / 2;
         }
 
-        ctx.drawImage(bg, dx, dy, drawWidth, drawHeight);
+        ctx.drawImage(
+          bg,
+          sx,
+          sy,
+          sWidth,
+          sHeight,
+          0,
+          0,
+          WIDTH,
+          HEIGHT
+        );
 
         // 어두운 오버레이
         ctx.fillStyle = "rgba(0,0,0,0.26)";
