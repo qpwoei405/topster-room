@@ -100,7 +100,7 @@ export default function Home() {
     const canvas = await html2canvas(captureRef.current, {
       backgroundColor: roomImage ? null : "#000",
       useCORS: true,
-      scale: 2,
+      scale: 3,
     });
 
     const image = canvas.toDataURL("image/png");
@@ -187,7 +187,7 @@ export default function Home() {
         ref={captureRef}
         style={{
           width: "100%",
-          maxWidth: "420px",
+          maxWidth: "520px",
           aspectRatio: "3 / 4",
           padding: "20px",
           backgroundColor: roomImage ? "transparent" : "#000",
