@@ -71,8 +71,8 @@ export default function Home() {
         const sy = (img.height - size) / 2;
 
         const canvas = document.createElement("canvas");
-        canvas.width = 2000;
-        canvas.height = 2667;
+        canvas.width = 1000;
+        canvas.height = 1000;
 
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
@@ -80,7 +80,17 @@ export default function Home() {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
 
-        ctx.drawImage(img, sx, sy, size, size, 0, 0, 500, 500);
+        ctx.drawImage(
+          img,
+          sx,
+          sy,
+          size,
+          size,
+          0,
+          0,
+          1000,
+          1000
+        );
 
         const croppedImage = canvas.toDataURL("image/png");
 
@@ -147,8 +157,8 @@ export default function Home() {
     ctx.imageSmoothingQuality = "high";
 
     // 기본 3:4
-    let WIDTH = 1536;
-    let HEIGHT = 2048;
+    let WIDTH = 2000;
+    let HEIGHT = 2667;
 
     let bg: HTMLImageElement | null = null;
 
