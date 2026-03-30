@@ -82,7 +82,7 @@ export default function Home() {
 
         ctx.drawImage(img, sx, sy, size, size, 0, 0, 500, 500);
 
-        const croppedImage = canvas.toDataURL("image/jpeg", 0.98);
+        const croppedImage = canvas.toDataURL("image/png");
 
         const newSections = [...sections];
         newSections[sectionIndex].images[imageIndex] = croppedImage;
@@ -111,7 +111,7 @@ export default function Home() {
 
     element.style.width = "1200px";
 
-    const image = canvas.toDataURL("image/png");
+    const image = canvas.toDataURL("image/jpeg", 0.98);
     setTopsterImage(image);
     return image;
   };
