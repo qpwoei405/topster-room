@@ -95,27 +95,6 @@ export default function Home() {
     reader.readAsDataURL(file);
   };
 
-  const handleCapture = async () => {
-    const element = captureRef.current;
-    if (!captureRef.current) return;
-
-    element.style.width = "1200px";
-
-    await new Promise((resolve) => setTimeout(resolve, 200));
-
-    const canvas = await html2canvas(element, {
-      backgroundColor: roomImage ? null : "#000",
-      useCORS: true,
-      scale: 3,
-    });
-
-    element.style.width = "1200px";
-
-    const image = canvas.toDataURL("image/jpeg", 0.98);
-    setTopsterImage(image);
-    return image;
-  };
-
   const handleDecorate = async (imageData: string) => {
     const res = await fetch("/api/decorate", {
       method: "POST",
