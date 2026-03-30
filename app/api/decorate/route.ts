@@ -8,7 +8,6 @@ export async function POST(req: Request) {
   try {
     const { image } = await req.json();
 
-    // 1) 작품 식별 + 취향 분석 + 무드 기반 방 프롬프트 생성
     const analysis = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -18,76 +17,85 @@ export async function POST(req: Request) {
             {
               type: "text",
               text: `
-You are analyzing a user's topster.
+You are analyzing a user's topster-style collage.
+
+The user may create any custom section, not only movie, music, game, or anime.
+A section may contain:
+- creative works (albums, films, games, anime, series, books)
+- lifestyle references (pets, fashion, food, objects, interiors, places, memories, scenery)
+
+Important interpretation rules:
+
+1. CREATIVE WORKS
+If the image most likely represents a creative work, prioritize identifying:
+- title
+- artist / director / franchise
+- category
+- confidence
+Then infer the work's actual traits:
+- genre
+- emotional tone
+- themes
+- cultural vibe
+- worldbuilding / storytelling mood
+
+2. LIFESTYLE / NON-MEDIA IMAGES
+If the image is not a creative work, do NOT force title identification.
+Instead infer:
+- what it is
+- lifestyle category
+- overall aesthetic mood
+- style cues
+Examples:
+adorable, retro, chic, urban, dreamy, cozy, playful, minimal, sporty, sentimental
+
+3. COMBINED INTERPRETATION
+Analyze all uploaded images together.
+Combine:
+- identified media traits
+- lifestyle cues
+- emotional tone
+- recurring themes
+- the overall color feeling of the uploaded images
+
+Color matters, but should not overpower the actual identity of the images.
+Use color as a supporting layer, not the only layer.
+
+4. CULTURAL CONTEXT
+Many uploaded works may be Korean, K-pop, Korean film, Asian animation, or other Asian media.
+Try your best to identify Korean and Asian works correctly.
+If uncertain, still provide a best guess and mark confidence.
+
+5. K-POP RULE
+If the taste strongly suggests K-pop / idol / trendy pop:
+- avoid nostalgic yellow-brown vintage default
+- prefer energetic, bright, playful, stylish interpretation
+- color palette can include pink, sky blue, white, pastel, chrome, neon accents
+- mood should feel polished, youthful, lively, and modern
+
+6. ROOM GENERATION GOALS
+The room should feel:
+- realistic and photo-like
+- Pinterest-worthy
+- like it was taken on an iPhone SE
+- personal and lived-in
+- slightly messy / imperfect
+- not overly staged
+- not perfectly symmetrical
+- subtly retro in spirit ("retrotic"), regardless of mood
 
 Important:
-- The user may create any custom section, not only movie, music, game, or anime.
-- Section names are important clues and must be used in interpretation.
-- A section may contain media, pets, fashion, objects, places, food, memories, lifestyle references, or personal images.
-- Many items may be Korean albums, K-pop, Korean films, or Asian media.
-- Try your best to identify Korean works too.
-- If uncertain, still provide a best guess and mark it as low confidence.
-
-Step 1:
-For each image, identify what it most likely represents.
-Use both the image itself and the section title as clues.
-Infer when possible:
-- what the image is
-- category or type
-- title / artist / franchise if it is media
-- subject or theme if it is not media
-- confidence (high / medium / low)
-
-Step 2:
-Analyze the user's taste based on the identified works, not just the visual design of the covers.
-Focus on:
-- emotional tone
-- lifestyle cues
-- genre and themes
-- atmosphere
-- personality
-- aesthetic preferences
-- cultural vibe
-- recurring themes
-
-Additional rule:
-- If the user shows strong K-pop / idol / modern pop music taste:
-  → prefer bright, clean, trendy aesthetics
-  → color palette: pink, sky blue, white, pastel, neon accents
-  → lighting: soft bright lighting, not warm yellow
-  → mood: playful, stylish, polished, youthful
-
-- Avoid making K-pop taste look nostalgic, vintage, or warm brown unless explicitly needed.
-
-Step 3:
-Write the result in a stylish, editorial, human-friendly tone.
-The output should feel aesthetic and expressive, not technical.
-
-Step 4:
-Create a room prompt that matches the user's emotional mood.
-The room should be based on the user's actual taste, so the mood can be melancholic, cozy, dreamy, bright, dark, nostalgic, minimal, eclectic, etc.
-Do NOT default to warm cozy interiors.
-The room must adapt to the user's mood.
-
-Examples:
-- If the user includes pets, reflect a pet-friendly room with matching mood.
-- If the user includes playful K-pop taste, use brighter trendy styling.
-- If the user includes melancholic films, use darker cinematic mood.
-- If the user includes cute objects or pastel references, reflect that in decor and color.
-
-Image generation goals:
-- realistic photo-like room
-- Pinterest-style aesthetic
-- lived-in and personal
-- visually rich and detailed
-- not flat graphic art
-- not generic hotel room
-- not empty minimal space unless the user's mood truly calls for it
+- Add a subtle retro touch to ALL outputs, but do not force everything into sepia, brown, or nostalgia.
+- The retro feeling can come from texture, objects, styling, mood layering, or analog imperfection.
+- Avoid using framed real-person portrait photos or celebrity posters as room decor.
+- Avoid showroom-like perfection.
+- Avoid over-clean minimal hotel-like rooms unless the taste truly calls for it.
 
 Return your answer in exactly this format:
 
-IDENTIFIED WORKS:
-- ...
+IDENTIFIED ITEMS:
+- item 1: [what it is] | [category] | [confidence]
+- item 2: ...
 
 TASTE KEYWORDS:
 - keyword 1
@@ -98,26 +106,26 @@ TASTE KEYWORDS:
 
 TASTE DESCRIPTION:
 - Write 2 short sentences in English.
-- Make it feel aesthetic, personal, and expressive.
+- Make it feel aesthetic, personal, stylish, and emotionally expressive.
 
 ROOM MOOD:
 - one short phrase only
 
 ROOM PROMPT:
-- Write 1 detailed sentence for generating a realistic room photo.
-- It must reflect the user's emotional tone.
-- Mention lighting, color palette, density of objects, decor style, and atmosphere.
-- Make it feel like a Pinterest-worthy personal room photo.
-Color direction rules:
-- K-pop / modern pop:
-  → bright, clean, pastel tones
-  → pink, sky blue, white, chrome, neon
-  → trendy and stylish room (not vintage)
-- melancholic / indie:
-  → dark blue, gray, muted tones
-- nostalgic:
-  → warm, faded, vintage tones
-Always match both mood AND genre.
+- Write 1 detailed sentence for generating a realistic personal room photo.
+- It must reflect:
+  - emotional tone
+  - lifestyle signals
+  - media taste
+  - uploaded image color feeling
+- Mention:
+  - lighting
+  - palette
+  - density of objects
+  - decor style
+  - atmosphere
+- It should feel Pinterest-worthy, realistic, slightly imperfect, slightly messy, and subtly retro.
+- It must not default to warm nostalgia unless the taste truly suggests that.
               `,
             },
             {
@@ -133,82 +141,74 @@ Always match both mood AND genre.
 
     const resultText = analysis.choices?.[0]?.message?.content || "";
 
-    const moodMatch = resultText.match(/ROOM MOOD:\s*([\s\S]*?)(?:ROOM PROMPT:|$)/);
-    const roomMood = moodMatch?.[1]?.replace(/^- /gm, "").trim() || "personal atmospheric room";
+    const moodMatch = resultText.match(
+      /ROOM MOOD:\s*([\s\S]*?)(?:ROOM PROMPT:|$)/
+    );
+    const roomMood =
+      moodMatch?.[1]?.replace(/^- /gm, "").trim() ||
+      "personal atmospheric room";
 
     const promptMatch = resultText.match(/ROOM PROMPT:\s*([\s\S]*)/);
     const roomPrompt =
       promptMatch?.[1]?.replace(/^- /gm, "").trim() ||
-      "A realistic, lived-in personal room with expressive mood, layered decor, and a strong emotional atmosphere.";
+      "A realistic, lived-in personal room with layered decor, expressive mood, slight messiness, subtle retro texture, and a Pinterest-worthy atmosphere.";
 
-    // 2) 무드 적응형 방 이미지 생성
     const imageGen = await client.images.generate({
       model: "gpt-image-1",
       prompt: `
 ${roomPrompt}
 
-Create a highly realistic, imperfect, lived-in room.
+Create a highly realistic personal room photo.
 
-Very important:
-- The room must NOT look staged or perfectly designed.
-- Avoid symmetry and perfect balance.
-- Make the composition slightly messy and natural.
-- The room should reflect not only media taste, but also lifestyle signals such as pets, fashion, objects, hobbies, memories, and personal references when present.
+Core visual direction:
+- Pinterest-style interior photo
+- shot on an iPhone SE
+- realistic, believable, lived-in
+- slightly imperfect framing
+- subtle grain / analog softness
+- layered detail
+- NOT flat CGI
+- NOT showroom perfect
 
-Add realism:
-- slightly wrinkled bed sheets
-- objects not aligned perfectly
-- books stacked unevenly
-- small clutter (cups, cables, papers, random items)
-- subtle wear and imperfections
-- natural shadows and imperfect lighting
+Global style rule:
+- Every image should include a subtle retrotic feeling.
+- This retro feeling should be gentle and stylish, not heavy sepia by default.
+- It can appear through texture, analog mood, objects, lighting character, or styling details.
 
-Mood:
-- match the user's emotional tone strongly
-- if melancholic: darker, quieter, more empty and lonely
-- if nostalgic: slightly aged, soft and faded
-- if dreamy: soft but not clean, slightly surreal but grounded
+Messiness / realism:
+- slightly wrinkled sheets
+- small clutter
+- uneven object placement
+- books / objects not perfectly aligned
+- casual lived-in disorder
+- believable wear and imperfection
 
-Camera realism:
-- look like a real photo taken with a phone like iphone se model
-- slight noise / grain
-- imperfect framing (not centered perfectly)
-- depth and shadow variation
+Strong adaptation rule:
+- Match the user's actual mood and content, not a generic cozy room.
+- Use the uploaded image color feeling as a supporting design layer.
+- If the taste is dark / introspective / cinematic, reflect that.
+- If the taste is playful / cute / energetic / K-pop-oriented, reflect that.
+- If the taste is food / pet / fashion / lifestyle-oriented, reflect that naturally in objects and decor.
 
-Avoid:
-- showroom interiors
-- pinterest-perfect symmetry
-- overly clean minimal spaces
-- obvious AI aesthetic
-- using frame of person's photo
-
-Style control (VERY IMPORTANT):
-
-If K-pop / idol / trendy pop:
-- bright lighting (NOT warm yellow)
-- clean pastel palette (pink, sky blue, white)
-- modern, stylish, youthful interior
-- slightly glossy / clean aesthetic
-- cute or trendy decor (posters, acrylic, lights)
-- avoid vintage / brown / nostalgic tones / frame of person's photo
-
-If melancholic / cinematic:
-- darker tones, blue/gray palette
-- quiet, minimal, emotional
-
-General realism:
-- imperfect, lived-in
-- slightly messy
-- not symmetrical
-- real photo 느낌
+K-pop special handling:
+- avoid yellowish nostalgic brown tones
+- prefer bright, energetic, stylish, polished, youthful interiors
+- use pink / sky blue / white / pastel / chrome / trendy accents when suitable
+- do not make K-pop outputs feel old, dusty, or sepia
 
 Avoid:
-- yellowish vintage tone for K-pop
-- overly warm lighting unless explicitly needed
-- generic aesthetic rooms
+- framed real-person portrait photos
+- celebrity photo frames
+- generic hotel-like spaces
+- overly symmetrical composition
+- overly clean minimal rooms
+- obvious AI perfection
+- defaulting every output to warm nostalgic lighting
 
-Make it feel like a real person's room that reflects their taste.
-`,
+The final image should feel like someone's real taste-filled room.
+Emotionally accurate first, aesthetically compelling second.
+Room mood reference: ${roomMood}
+      `,
       size: "1024x1024",
     });
 
@@ -224,9 +224,6 @@ Make it feel like a real person's room that reflects their taste.
   } catch (error) {
     console.error("DECORATE API ERROR:", error);
 
-    return Response.json(
-      { error: "decorate failed" },
-      { status: 500 }
-    );
+    return Response.json({ error: "decorate failed" }, { status: 500 });
   }
 }
