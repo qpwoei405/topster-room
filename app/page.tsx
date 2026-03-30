@@ -82,7 +82,7 @@ export default function Home() {
 
         ctx.drawImage(img, sx, sy, size, size, 0, 0, 500, 500);
 
-        const croppedImage = canvas.toDataURL("image/png");
+        const croppedImage = canvas.toDataURL("image/jpeg", 0.98);
 
         const newSections = [...sections];
         newSections[sectionIndex].images[imageIndex] = croppedImage;
@@ -268,9 +268,6 @@ export default function Home() {
         const x = padding + col * (cellSize + gap);
         const boxY = y + row * (cellSize + gap);
 
-        ctx.fillStyle = "white";
-        ctx.fillRect(x, boxY, cellSize, cellSize);
-
         const src = section.images[i];
         if (src) {
           const img = new Image();
@@ -309,7 +306,7 @@ export default function Home() {
 
     const link = document.createElement("a");
     link.href = image;
-    link.download = "my-topster-room-3x4.png";
+    link.download = "my-topster-room-3x4.jpg";
     link.click();
   };
 
