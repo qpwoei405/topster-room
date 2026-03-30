@@ -289,6 +289,12 @@ export default function Home() {
     link.click();
   };
 
+  const getTasteDescription = (text: string) => {
+    const match = text.match(/TASTE DESCRIPTION:\s*([\s\S]*?)(?:ROOM MOOD:|ROOM PROMPT:|$)/);
+    if (!match) return "";
+    return match[1].replace(/^- /gm, "").trim();
+  };
+
   const tasteDescription = getTasteDescription(analysis);
 
   if (screen === "home") {
