@@ -158,8 +158,8 @@ export default function Home() {
     }
 
     // 3:4 비율, 배경 원본 기준으로 최대한 선명하게
-    let WIDTH = 2400;
-    let HEIGHT = 3200;
+    let WIDTH = 1536;
+    let HEIGHT = 2048;
 
     if (bg) {
       const targetRatio = 3 / 4;
