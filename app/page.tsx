@@ -15,6 +15,7 @@ export default function Home() {
   const [topsterImage, setTopsterImage] = useState<string>("");
   const [roomImage, setRoomImage] = useState<string>("");
   const [analysis, setAnalysis] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const captureRef = useRef<HTMLDivElement>(null);
 
@@ -31,28 +32,32 @@ export default function Home() {
   };
 
   const removeSection = (sectionIndex: number) => {
-    setSections(sections.filter((_, index) => index !== sectionIndex));
+    setSections((prev) => prev.filter((_, index) => index !== sectionIndex));
   };
 
   const updateSectionTitle = (sectionIndex: number, title: string) => {
-    const newSections = [...sections];
-    newSections[sectionIndex].title = title;
-    setSections(newSections);
+    setSections((prev) => {
+      const next = [...prev];
+      next[sectionIndex].title = title;
+      return next;
+    });
   };
 
   const updateSectionRows = (sectionIndex: number, newRows: number) => {
-    const newSections = [...sections];
-    const oldImages = newSections[sectionIndex].images;
-    const newSize = newRows * 4;
+    setSections((prev) => {
+      const next = [...prev];
+      const oldImages = next[sectionIndex].images;
+      const newSize = newRows * 4;
 
-    newSections[sectionIndex].rows = newRows;
-    newSections[sectionIndex].images = Array.from(
-      { length: newSize },
-      (_, i) => oldImages[i] || ""
-    );
-    newSections[sectionIndex].isEditing = false;
+      next[sectionIndex].rows = newRows;
+      next[sectionIndex].images = Array.from(
+        { length: newSize },
+        (_, i) => oldImages[i] || ""
+      );
+      next[sectionIndex].isEditing = false;
 
-    setSections(newSections);
+      return next;
+    });
   };
 
   const handleUpload = (
@@ -80,23 +85,15 @@ export default function Home() {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
 
-        ctx.drawImage(
-          img,
-          sx,
-          sy,
-          size,
-          size,
-          0,
-          0,
-          1000,
-          1000
-        );
+        ctx.drawImage(img, sx, sy, size, size, 0, 0, 1000, 1000);
 
         const croppedImage = canvas.toDataURL("image/png");
 
-        const newSections = [...sections];
-        newSections[sectionIndex].images[imageIndex] = croppedImage;
-        setSections(newSections);
+        setSections((prev) => {
+          const next = [...prev];
+          next[sectionIndex].images[imageIndex] = croppedImage;
+          return next;
+        });
       };
 
       img.src = reader.result as string;
@@ -105,49 +102,40 @@ export default function Home() {
     reader.readAsDataURL(file);
   };
 
+  // AI 분석용 캡처: 화면 확대 없이 현재 보이는 레이아웃만 캡처
+  const handleCaptureForAI = async () => {
+    const element = captureRef.current;
+    if (!element) return "";
+
+    await new Promise((resolve) => setTimeout(resolve, 120));
+
+    const canvas = await html2canvas(element, {
+      backgroundColor: roomImage ? null : "#000",
+      useCORS: true,
+      scale: 1.5,
+    });
+
+    const image = canvas.toDataURL("image/png");
+    setTopsterImage(image);
+    return image;
+  };
+
   const handleDecorate = async (imageData: string) => {
     const res = await fetch("/api/decorate", {
       method: "POST",
       body: JSON.stringify({ image: imageData }),
     });
 
+    if (!res.ok) {
+      throw new Error("Decorate request failed");
+    }
+
     const data = await res.json();
-    setRoomImage(data.roomImage);
-    setAnalysis(data.analysis);
+    setRoomImage(data.roomImage || "");
+    setAnalysis(data.analysis || "");
   };
 
-  const handleCapture = async () => {
-    const element = captureRef.current;
-    if (!element) return;
-
-    // 🔥 원래 스타일 저장
-    const prev = {
-      width: element.style.width,
-      maxWidth: element.style.maxWidth,
-    };
-
-    // 🔥 캡처용으로 크게 (핵심)
-    element.style.width = "1400px";
-    element.style.maxWidth = "1400px";
-
-    await new Promise((r) => setTimeout(r, 200));
-
-    const canvas = await html2canvas(element, {
-      backgroundColor: roomImage ? null : "#000",
-      useCORS: true,
-      scale: 2, // 여기 2~3 추천
-    });
-
-    // 🔥 원상복구
-    element.style.width = prev.width;
-    element.style.maxWidth = prev.maxWidth;
-
-    // 🔥 고품질 PNG
-    const image = canvas.toDataURL("image/png", 1.0);
-    setTopsterImage(image);
-    return image;
-  };
-
+  // 저장용: canvas 직접 합성
   const handleDownload = async () => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
@@ -156,13 +144,8 @@ export default function Home() {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
 
-    // 기본 3:4
-    let WIDTH = 2000;
-    let HEIGHT = 2667;
-
     let bg: HTMLImageElement | null = null;
 
-    // 룸이미지 먼저 로드
     if (roomImage) {
       bg = new Image();
       bg.crossOrigin = "anonymous";
@@ -172,30 +155,31 @@ export default function Home() {
         bg!.onload = () => resolve();
         bg!.onerror = reject;
       });
+    }
 
-      // 배경 원본 기준으로 3:4 맞추기
-      const portraitWidthFromBg = Math.round((bg.height * 3) / 4);
-      const portraitHeightFromBg = Math.round((bg.width * 4) / 3);
+    // 3:4 비율, 배경 원본 기준으로 최대한 선명하게
+    let WIDTH = 1536;
+    let HEIGHT = 2048;
 
-      if (bg.width / bg.height > 3 / 4) {
-        // 배경이 더 넓으면 높이 기준
+    if (bg) {
+      const targetRatio = 3 / 4;
+
+      if (bg.width / bg.height > targetRatio) {
         HEIGHT = bg.height;
-        WIDTH = portraitWidthFromBg;
+        WIDTH = Math.round(bg.height * targetRatio);
       } else {
-        // 배경이 더 세로면 너비 기준
         WIDTH = bg.width;
-        HEIGHT = portraitHeightFromBg;
+        HEIGHT = Math.round(bg.width / targetRatio);
       }
     }
 
     canvas.width = WIDTH;
     canvas.height = HEIGHT;
 
-    // 검정 배경
-    ctx.fillStyle = "black";
+    // 배경
+    ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // 룸이미지 cover 크롭
     if (bg) {
       const imgRatio = bg.width / bg.height;
       const canvasRatio = WIDTH / HEIGHT;
@@ -213,17 +197,7 @@ export default function Home() {
         sy = (bg.height - sHeight) / 2;
       }
 
-      ctx.drawImage(
-        bg,
-        sx,
-        sy,
-        sWidth,
-        sHeight,
-        0,
-        0,
-        WIDTH,
-        HEIGHT
-      );
+      ctx.drawImage(bg, sx, sy, sWidth, sHeight, 0, 0, WIDTH, HEIGHT);
 
       ctx.fillStyle = "rgba(0,0,0,0.26)";
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -243,6 +217,7 @@ export default function Home() {
     for (const section of sections) {
       if (!section.title.trim() || !section.rows) continue;
 
+      // 제목만 그림. 삭제 버튼은 저장본에 안 그림.
       ctx.fillStyle = "red";
       ctx.font = `bold ${Math.round(WIDTH * 0.05)}px Arial`;
       ctx.fillText(section.title, padding, y);
@@ -256,6 +231,10 @@ export default function Home() {
 
         const x = padding + col * (cellSize + gap);
         const boxY = y + row * (cellSize + gap);
+
+        // 흰 박스
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(x, boxY, cellSize, cellSize);
 
         const src = section.images[i];
         if (src) {
@@ -290,7 +269,8 @@ export default function Home() {
       y += section.rows * cellSize + (section.rows - 1) * gap + sectionGap;
     }
 
-    const image = canvas.toDataURL("image/png");
+    // JPG 고품질 저장
+    const image = canvas.toDataURL("image/jpeg", 0.98);
     setTopsterImage(image);
 
     const link = document.createElement("a");
@@ -300,7 +280,9 @@ export default function Home() {
   };
 
   const getTasteDescription = (text: string) => {
-    const match = text.match(/TASTE DESCRIPTION:\s*([\s\S]*?)(?:ROOM MOOD:|ROOM PROMPT:|$)/);
+    const match = text.match(
+      /TASTE DESCRIPTION:\s*([\s\S]*?)(?:ROOM MOOD:|ROOM PROMPT:|$)/
+    );
     if (!match) return "";
     return match[1].replace(/^- /gm, "").trim();
   };
@@ -310,7 +292,9 @@ export default function Home() {
   if (screen === "home") {
     return (
       <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
-        <h1 className="text-5xl font-bold mb-10 text-center">My Topster Room</h1>
+        <h1 className="text-5xl font-bold mb-10 text-center">
+          My Topster Room
+        </h1>
 
         <button
           onClick={() => setScreen("editor")}
@@ -352,7 +336,8 @@ export default function Home() {
       </div>
 
       <div
-        ref={captureRef} id="capture_area"
+        ref={captureRef}
+        id="capture_area"
         style={{
           width: "100%",
           maxWidth: "520px",
@@ -562,12 +547,23 @@ export default function Home() {
 
       <button
         onClick={async () => {
-          const image = await handleCapture();
-          if (image) await handleDecorate(image);
+          try {
+            setIsLoading(true);
+            const image = await handleCaptureForAI();
+            if (image) {
+              await handleDecorate(image);
+            }
+          } catch (error) {
+            console.error(error);
+            alert("Failed to generate room image.");
+          } finally {
+            setIsLoading(false);
+          }
         }}
-        className="w-full max-w-md mt-10 border border-white py-4 text-xl font-semibold hover:bg-white hover:text-black transition"
+        disabled={isLoading}
+        className="w-full max-w-md mt-10 border border-white py-4 text-xl font-semibold hover:bg-white hover:text-black transition disabled:opacity-50"
       >
-        decorate my room
+        {isLoading ? "generating..." : "decorate my room"}
       </button>
 
       {tasteDescription && (
